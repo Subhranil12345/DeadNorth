@@ -1,0 +1,99 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/zombie.gd" id="1"]
+
+[sub_resource type="CapsuleShape3D" id="ShapeZombie"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="MeshZBody"]
+radius = 0.4
+height = 1.5
+radial_segments = 8
+rings = 2
+
+[sub_resource type="StandardMaterial3D" id="MatZBody"]
+albedo_color = Color(0.32, 0.42, 0.36, 1)
+roughness = 0.95
+
+[sub_resource type="BoxMesh" id="MeshZHead"]
+size = Vector3(0.42, 0.42, 0.42)
+
+[sub_resource type="StandardMaterial3D" id="MatZSkin"]
+albedo_color = Color(0.62, 0.74, 0.7, 1)
+roughness = 0.95
+
+[sub_resource type="BoxMesh" id="MeshZArm"]
+size = Vector3(0.18, 0.18, 0.7)
+
+[sub_resource type="BoxMesh" id="MeshZBand"]
+size = Vector3(0.72, 0.16, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="MatZArm"]
+albedo_color = Color(0.55, 0.66, 0.62, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="MatZEye"]
+albedo_color = Color(0.05, 0.05, 0.05, 1)
+emission_enabled = true
+emission = Color(0.95, 0.25, 0.2, 1)
+emission_energy_multiplier = 0.7
+
+[sub_resource type="BoxMesh" id="MeshZEye"]
+size = Vector3(0.08, 0.08, 0.04)
+
+[node name="Zombie" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 7
+script = ExtResource("1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("ShapeZombie")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("MeshZBody")
+material_override = SubResource("MatZBody")
+
+[node name="Head" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+mesh = SubResource("MeshZHead")
+material_override = SubResource("MatZSkin")
+
+[node name="EyeL" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 1.84, -0.215)
+mesh = SubResource("MeshZEye")
+material_override = SubResource("MatZEye")
+
+[node name="EyeR" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 1.84, -0.215)
+mesh = SubResource("MeshZEye")
+material_override = SubResource("MatZEye")
+
+[node name="ArmL" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0.94, 0.0, -0.34, 0.17, 0.86, 0.48, 0.29, -0.51, 0.81, -0.4, 1.2, -0.45)
+mesh = SubResource("MeshZArm")
+material_override = SubResource("MatZArm")
+
+[node name="ArmR" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(0.94, 0.0, 0.34, -0.17, 0.86, 0.48, -0.29, -0.51, 0.81, 0.4, 1.2, -0.45)
+mesh = SubResource("MeshZArm")
+material_override = SubResource("MatZArm")
+
+[node name="LegL" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 0.94, -0.34, 0, 0.34, 0.94, -0.22, 0.35, 0.02)
+mesh = SubResource("MeshZArm")
+material_override = SubResource("MatZArm")
+
+[node name="LegR" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 0.94, 0.34, 0, -0.34, 0.94, 0.22, 0.35, 0.02)
+mesh = SubResource("MeshZArm")
+material_override = SubResource("MatZArm")
+
+[node name="ChestBand" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.28, -0.36)
+mesh = SubResource("MeshZBand")
+material_override = SubResource("MatZBody")

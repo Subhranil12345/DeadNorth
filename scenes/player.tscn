@@ -1,0 +1,144 @@
+[gd_scene load_steps=19 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/weapon.gd" id="2"]
+
+[sub_resource type="CapsuleShape3D" id="ShapePlayer"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="MeshBody"]
+radius = 0.38
+height = 1.4
+
+[sub_resource type="StandardMaterial3D" id="MatCoat"]
+albedo_color = Color(0.18, 0.22, 0.32, 1)
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="MeshHead"]
+size = Vector3(0.45, 0.45, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="MatSkin"]
+albedo_color = Color(0.86, 0.74, 0.62, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="MeshHat"]
+size = Vector3(0.55, 0.18, 0.55)
+
+[sub_resource type="StandardMaterial3D" id="MatHat"]
+albedo_color = Color(0.55, 0.18, 0.18, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="MeshArm"]
+size = Vector3(0.18, 0.75, 0.18)
+
+[sub_resource type="BoxMesh" id="MeshBoot"]
+size = Vector3(0.28, 0.16, 0.42)
+
+[sub_resource type="BoxMesh" id="MeshScarf"]
+size = Vector3(0.62, 0.14, 0.2)
+
+[sub_resource type="StandardMaterial3D" id="MatScarf"]
+albedo_color = Color(0.92, 0.62, 0.22, 1)
+roughness = 0.86
+
+[sub_resource type="BoxMesh" id="MeshBackpack"]
+size = Vector3(0.68, 0.9, 0.28)
+
+[sub_resource type="StandardMaterial3D" id="MatGear"]
+albedo_color = Color(0.12, 0.16, 0.2, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="MeshHandle"]
+size = Vector3(0.07, 0.07, 0.85)
+
+[sub_resource type="StandardMaterial3D" id="MatHandle"]
+albedo_color = Color(0.42, 0.27, 0.16, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="MeshBatHead"]
+size = Vector3(0.13, 0.13, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="MatBatHead"]
+albedo_color = Color(0.62, 0.45, 0.28, 1)
+roughness = 0.7
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 5
+script = ExtResource("1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("ShapePlayer")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("MeshBody")
+material_override = SubResource("MatCoat")
+
+[node name="Head" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.85, 0)
+mesh = SubResource("MeshHead")
+material_override = SubResource("MatSkin")
+
+[node name="Hat" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+mesh = SubResource("MeshHat")
+material_override = SubResource("MatHat")
+
+[node name="Scarf" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.58, -0.28)
+mesh = SubResource("MeshScarf")
+material_override = SubResource("MatScarf")
+
+[node name="Backpack" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.02, 0.43)
+mesh = SubResource("MeshBackpack")
+material_override = SubResource("MatGear")
+
+[node name="ArmL" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.94, 0, -0.34, 0.12, 0.94, 0.32, 0.32, -0.34, 0.88, -0.44, 1.08, -0.05)
+mesh = SubResource("MeshArm")
+material_override = SubResource("MatCoat")
+
+[node name="ArmR" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.94, 0, 0.34, -0.12, 0.94, 0.32, -0.32, -0.34, 0.88, 0.44, 1.08, -0.05)
+mesh = SubResource("MeshArm")
+material_override = SubResource("MatCoat")
+
+[node name="BootL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.22, 0.08, -0.08)
+mesh = SubResource("MeshBoot")
+material_override = SubResource("MatGear")
+
+[node name="BootR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, 0.08, -0.08)
+mesh = SubResource("MeshBoot")
+material_override = SubResource("MatGear")
+
+[node name="CameraPivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot"]
+spring_length = 3.6
+collision_mask = 1
+margin = 0.15
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.3, 0)
+fov = 75.0
+
+[node name="Weapon" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 1.15, -0.45)
+script = ExtResource("2")
+
+[node name="Handle" type="MeshInstance3D" parent="Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("MeshHandle")
+material_override = SubResource("MatHandle")
+
+[node name="BatHead" type="MeshInstance3D" parent="Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+mesh = SubResource("MeshBatHead")
+material_override = SubResource("MatBatHead")

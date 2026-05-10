@@ -1,0 +1,45 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/world.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/zombie.tscn" id="4"]
+[ext_resource type="Script" path="res://scripts/day_night.gd" id="5"]
+
+[sub_resource type="Environment" id="Env_1"]
+background_mode = 1
+background_color = Color(0.62, 0.7, 0.78, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.7, 0.78, 0.85, 1)
+ambient_light_energy = 0.6
+tonemap_mode = 2
+fog_enabled = true
+fog_light_color = Color(0.78, 0.83, 0.9, 1)
+fog_density = 0.008
+fog_sky_affect = 0.0
+
+[node name="World" type="Node3D"]
+script = ExtResource("1")
+zombie_scene = ExtResource("4")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_1")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.819, -0.47, 0.33, 0, 0.574, 0.819, -0.574, -0.671, 0.47, 0, 12, 0)
+light_color = Color(1.0, 0.96, 0.88, 1)
+light_energy = 0.85
+shadow_enabled = true
+directional_shadow_max_distance = 80.0
+
+[node name="DayNight" type="Node" parent="."]
+script = ExtResource("5")
+day_length_seconds = 240.0
+time_of_day = 0.32
+environment_node_path = NodePath("../WorldEnvironment")
+sun_node_path = NodePath("../Sun")
+
+[node name="Player" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="HUD" parent="." instance=ExtResource("3")]
