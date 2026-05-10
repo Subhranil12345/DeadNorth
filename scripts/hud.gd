@@ -29,8 +29,14 @@ var _compass_strip: Control
 var _boss_panel: Panel
 var _boss_bar: ProgressBar
 var _boss_label: Label
+var _map_overlay: Control
+var _map_canvas: Control
+var _map_player_dot: ColorRect
+var _map_objective_dot: ColorRect
 
 const COMPASS_WIDTH: float = 280.0
+const MAP_WIDTH: float = 980.0
+const MAP_HEIGHT: float = 620.0
 const SKILL_TUTORIAL_SECONDS: float = 7.0
 const SKILL_TUTORIAL_FADE_SECONDS: float = 1.2
 const COMPASS_PX_PER_DEG: float = 1.6  # ~175° visible across the strip
@@ -54,7 +60,7 @@ func _ready() -> void:
 	GameManager.inventory_changed.connect(_on_inventory_changed)
 
 	center_label.visible = false
-	hint_label.text = "WASD move | Shift sprint | LMB attack | 1-4 weapon | QEF skills | G interact | B build | Esc cursor"
+	hint_label.text = "WASD move | Shift sprint | LMB attack | 1-8 weapon | QEF skills | G interact | B build | M map | Esc cursor"
 
 	_build_weapon_panel()
 	_build_skill_panel()
@@ -70,6 +76,7 @@ func _ready() -> void:
 	_build_weather_label()
 	_build_compass()
 	_build_boss_bar()
+	_build_map_overlay()
 
 	_on_kills_changed(GameManager.kills)
 	_on_scrap_changed(GameManager.scrap)
@@ -183,6 +190,7 @@ func _process(delta: float) -> void:
 	_refresh_skill_tutorial(delta)
 	_refresh_interact_prompt()
 	_refresh_objective_label()
+	_refresh_map_marker()
 	_update_compass()
 	_refresh_regroup_phase_label()
 
@@ -255,6 +263,29 @@ func _refresh_objective_label() -> void:
 		_objective_label.visible = true
 	else:
 		_objective_label.visible = false
+
+
+func _refresh_map_marker() -> void:
+	if _map_overlay == null or not _map_overlay.visible or _player == null or not is_instance_valid(_player):
+		return
+	_map_player_dot.position = _world_to_map((_player as Node3D).global_position) - _map_player_dot.size * 0.5
+	_map_objective_dot.position = _world_to_map(Vector3(5200.0, 0.0, -4300.0)) - _map_objective_dot.size * 0.5
+
+
+func _world_to_map(world_pos: Vector3) -> Vector2:
+	var scene := get_tree().current_scene
+	var half_x := 8000.0
+	var half_z := 6000.0
+	if scene != null:
+		var scene_half_x = scene.get("arena_half_x")
+		var scene_half_z = scene.get("arena_half_z")
+		if scene_half_x != null:
+			half_x = float(scene_half_x)
+		if scene_half_z != null:
+			half_z = float(scene_half_z)
+	var x := inverse_lerp(-half_x, half_x, world_pos.x) * MAP_WIDTH
+	var y := inverse_lerp(-half_z, half_z, world_pos.z) * MAP_HEIGHT
+	return Vector2(clamp(x, 0.0, MAP_WIDTH), clamp(y, 0.0, MAP_HEIGHT))
 
 
 # -- HUD construction -----------------------------------------------------
@@ -591,6 +622,146 @@ func _build_boss_bar() -> void:
 	_boss_panel.add_child(_boss_label)
 
 
+func _build_map_overlay() -> void:
+	_map_overlay = Control.new()
+	_map_overlay.name = "MapOverlay"
+	_map_overlay.anchor_right = 1.0
+	_map_overlay.anchor_bottom = 1.0
+	_map_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_map_overlay.visible = false
+	$Root.add_child(_map_overlay)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0.0, 0.0, 0.0, 0.68)
+	dim.anchor_right = 1.0
+	dim.anchor_bottom = 1.0
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_overlay.add_child(dim)
+
+	var panel := Panel.new()
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -560.0
+	panel.offset_right = 560.0
+	panel.offset_top = -380.0
+	panel.offset_bottom = 380.0
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.04, 0.05, 0.06, 0.94)
+	sb.border_color = Color(0.7, 0.78, 0.82, 0.5)
+	sb.border_width_left = 2
+	sb.border_width_right = 2
+	sb.border_width_top = 2
+	sb.border_width_bottom = 2
+	sb.corner_radius_top_left = 6
+	sb.corner_radius_top_right = 6
+	sb.corner_radius_bottom_left = 6
+	sb.corner_radius_bottom_right = 6
+	panel.add_theme_stylebox_override("panel", sb)
+	_map_overlay.add_child(panel)
+
+	var title := Label.new()
+	title.text = "DEAD NORTH FIELD MAP"
+	title.offset_left = 28.0
+	title.offset_top = 18.0
+	title.offset_right = 500.0
+	title.offset_bottom = 50.0
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color(1.0, 0.94, 0.78))
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(title)
+
+	var hint := Label.new()
+	hint.text = "M CLOSE"
+	hint.anchor_left = 1.0
+	hint.anchor_right = 1.0
+	hint.offset_left = -160.0
+	hint.offset_top = 24.0
+	hint.offset_right = -28.0
+	hint.offset_bottom = 48.0
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hint.add_theme_font_size_override("font_size", 15)
+	hint.add_theme_color_override("font_color", Color(0.78, 0.86, 0.9))
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(hint)
+
+	_map_canvas = Control.new()
+	_map_canvas.position = Vector2(70.0, 74.0)
+	_map_canvas.size = Vector2(MAP_WIDTH, MAP_HEIGHT)
+	_map_canvas.clip_contents = true
+	_map_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(_map_canvas)
+
+	_add_map_rect("Snow", Vector2.ZERO, Vector2(MAP_WIDTH, MAP_HEIGHT), Color(0.88, 0.92, 0.92))
+	_add_map_rect("Desert", Vector2.ZERO, Vector2(MAP_WIDTH * 0.275, MAP_HEIGHT), Color(0.86, 0.48, 0.18))
+	_add_map_rect("Autumn", Vector2(0, 0), Vector2(MAP_WIDTH, MAP_HEIGHT * 0.225), Color(0.5, 0.26, 0.12))
+	_add_map_rect("Plains", Vector2(0, MAP_HEIGHT * 0.75), Vector2(MAP_WIDTH, MAP_HEIGHT * 0.25), Color(0.28, 0.5, 0.25))
+	_add_map_rect("Ocean", Vector2(MAP_WIDTH * 0.85, 0), Vector2(MAP_WIDTH * 0.15, MAP_HEIGHT), Color(0.08, 0.34, 0.72))
+	for i in 9:
+		var river := _add_map_rect("River", Vector2(180.0 + i * 78.0, 360.0 - i * 24.0), Vector2(160.0, 22.0), Color(0.05, 0.42, 0.82))
+		river.rotation = -0.32
+	_add_map_label("DESERT", Vector2(36, 300), Color(1.0, 0.9, 0.65))
+	_add_map_label("SNOW", Vector2(430, 300), Color(0.1, 0.14, 0.18))
+	_add_map_label("AUTUMN", Vector2(420, 72), Color(1.0, 0.84, 0.56))
+	_add_map_label("PLAINS", Vector2(426, 535), Color(0.82, 1.0, 0.76))
+	_add_map_label("OCEAN", Vector2(850, 300), Color(0.75, 0.92, 1.0))
+
+	_map_objective_dot = _add_map_dot(Color(1.0, 0.24, 0.18), Vector2(14, 14))
+	_map_player_dot = _add_map_dot(Color(0.25, 1.0, 0.45), Vector2(12, 12))
+	_add_map_legend(panel)
+
+
+func _add_map_rect(rect_name: String, pos: Vector2, rect_size: Vector2, color: Color) -> ColorRect:
+	var rect := ColorRect.new()
+	rect.name = rect_name
+	rect.position = pos
+	rect.size = rect_size
+	rect.color = color
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_canvas.add_child(rect)
+	return rect
+
+
+func _add_map_label(text: String, pos: Vector2, color: Color) -> void:
+	var label := Label.new()
+	label.text = text
+	label.position = pos
+	label.size = Vector2(130, 26)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.55))
+	label.add_theme_constant_override("shadow_offset_x", 1)
+	label.add_theme_constant_override("shadow_offset_y", 1)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_canvas.add_child(label)
+
+
+func _add_map_dot(color: Color, dot_size: Vector2) -> ColorRect:
+	var dot := ColorRect.new()
+	dot.size = dot_size
+	dot.color = color
+	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_map_canvas.add_child(dot)
+	return dot
+
+
+func _add_map_legend(panel: Panel) -> void:
+	var legend := Label.new()
+	legend.text = "GREEN: YOU    RED: RADIO TOWER    WHITE: SNOW    ORANGE: DESERT    BLUE: WATER"
+	legend.offset_left = 70.0
+	legend.offset_top = 704.0
+	legend.offset_right = 1050.0
+	legend.offset_bottom = 732.0
+	legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	legend.add_theme_font_size_override("font_size", 14)
+	legend.add_theme_color_override("font_color", Color(0.88, 0.92, 0.86))
+	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(legend)
+
+
 # -- Signal handlers ------------------------------------------------------
 
 func _on_warmth_changed(current: float, maximum: float) -> void:
@@ -697,6 +868,12 @@ func _on_game_won() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_map"):
+		if _map_overlay:
+			_map_overlay.visible = not _map_overlay.visible
+			crosshair.visible = not _map_overlay.visible and not GameManager.game_over
+			_refresh_map_marker()
+		return
 	if event.is_action_pressed("restart") and GameManager.game_over:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		get_tree().reload_current_scene()

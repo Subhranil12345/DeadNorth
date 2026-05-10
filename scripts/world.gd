@@ -5,10 +5,10 @@ extends Node3D
 # spawn so the world feels populated nearby and lonely in the wilderness.
 
 @export var zombie_scene: PackedScene
-@export var max_alive: int = 8
-@export var initial_wave: int = 5
-@export var spawn_interval: float = 3.0
-@export var night_spawn_interval: float = 1.6
+@export var max_alive: int = 160
+@export var initial_wave: int = 14
+@export var spawn_interval: float = 1.8
+@export var night_spawn_interval: float = 1.0
 @export var spawn_radius_min: float = 14.0
 @export var spawn_radius_max: float = 32.0
 @export var arena_half_x: float = 8000.0  # 16 km wide
@@ -268,11 +268,15 @@ func _build_level() -> void:
 	_build_walls(level)
 	_build_buildings(level)
 	_build_trees(level)
+	_build_rugged_terrain(level)
+	_scatter_field_vehicles(level)
 	_scatter_set_dressing(level)
 	_build_mines_and_pickups(level)
 	_build_objective(level)
 	_build_safe_zone(level)
 	_scatter_loot(level)
+	_seed_regional_zombies(level)
+	_spawn_regional_bosses(level)
 
 
 func _build_ground(parent: Node3D) -> void:
@@ -507,6 +511,7 @@ func _build_buildings(parent: Node3D) -> void:
 		else:
 			_make_cabin(parent, p, rng.randf() * TAU)
 		placed += 1
+	_build_settlements(parent)
 
 
 func _make_cabin(parent: Node3D, pos: Vector3, yaw: float) -> void:
@@ -612,6 +617,44 @@ func _make_enterable_house(parent: Node3D, pos: Vector3, yaw: float) -> void:
 	_add_glow_box(house, Vector3(0.32, 0.28, 0.32), Vector3(0, 2.55, 1.8), Color(1.0, 0.72, 0.38), 1.1)
 
 
+func _build_settlements(parent: Node3D) -> void:
+	var settlements: Array[Dictionary] = [
+		{"name": "Snow Hamlet", "center": Vector3(520, 0, -680), "count": 7, "spread": 32.0},
+		{"name": "Desert Outpost", "center": Vector3(-5600, 0, -880), "count": 6, "spread": 38.0},
+		{"name": "River Shacks", "center": Vector3(-900, 0, 1180), "count": 8, "spread": 30.0},
+		{"name": "Plainstead", "center": Vector3(2600, 0, 4200), "count": 7, "spread": 42.0},
+		{"name": "Autumn Cabins", "center": Vector3(-1300, 0, -4300), "count": 6, "spread": 36.0},
+		{"name": "Coast Houses", "center": Vector3(6200, 0, 1450), "count": 5, "spread": 34.0},
+	]
+	for settlement in settlements:
+		var center: Vector3 = settlement["center"]
+		var count: int = int(settlement["count"])
+		var spread: float = float(settlement["spread"])
+		var hub := Node3D.new()
+		hub.name = String(settlement["name"]).replace(" ", "")
+		hub.position = center
+		parent.add_child(hub)
+		for i in count:
+			var angle: float = TAU * float(i) / float(max(1, count))
+			var ring: float = spread * (0.55 + 0.18 * float(i % 3))
+			var pos := center + Vector3(cos(angle) * ring, 0.0, sin(angle) * ring)
+			if i % 2 == 0:
+				_make_enterable_house(parent, pos, angle + PI)
+			else:
+				_make_cabin(parent, pos, angle + PI)
+		_add_box(parent, Vector3(spread * 1.6, 0.08, 3.0), center + Vector3(0, 0.045, 0), Color(0.22, 0.2, 0.17), "SettlementTrack")
+		var label := Label3D.new()
+		label.text = String(settlement["name"]).to_upper()
+		label.font_size = 32
+		label.outline_size = 8
+		label.outline_modulate = Color(0, 0, 0, 0.85)
+		label.modulate = Color(0.9, 0.84, 0.62)
+		label.position = center + Vector3(0, 5.2, 0)
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.no_depth_test = true
+		parent.add_child(label)
+
+
 func _build_trees(parent: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1234
@@ -678,6 +721,67 @@ func _scatter_set_dressing(parent: Node3D) -> void:
 		_add_box(sign_node, Vector3(1.15, 0.52, 0.08), Vector3(0, 0.72, -0.04), Color(0.9, 0.65, 0.26))
 		_add_box(sign_node, Vector3(0.2, 0.08, 0.1), Vector3(-0.32, 0.72, -0.1), Color(0.16, 0.12, 0.09))
 		_add_box(sign_node, Vector3(0.2, 0.08, 0.1), Vector3(0.32, 0.72, -0.1), Color(0.16, 0.12, 0.09))
+
+
+func _build_rugged_terrain(parent: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 33071
+	for i in 120:
+		var angle := rng.randf() * TAU
+		var radius := rng.randf_range(220.0, 5900.0)
+		var pos := Vector3(cos(angle) * radius, 0.04, sin(angle) * radius * 0.84)
+		if absf(pos.x) > arena_half_x - 120.0 or absf(pos.z) > arena_half_z - 120.0:
+			continue
+		if pos.length() < 110.0:
+			continue
+		var biome := get_biome_at(pos)
+		var color := Color(0.34, 0.35, 0.34)
+		if biome == "desert":
+			color = Color(0.62, 0.47, 0.25)
+		elif biome == "plains":
+			color = Color(0.24, 0.36, 0.2)
+		elif biome == "autumn":
+			color = Color(0.38, 0.22, 0.12)
+		elif biome == "river" or biome == "ocean":
+			color = Color(0.1, 0.22, 0.27)
+		var ridge := _add_box(parent, Vector3(rng.randf_range(5.0, 16.0), rng.randf_range(0.12, 0.45), rng.randf_range(1.4, 4.8)), pos, color, "RuggedRidge")
+		ridge.rotation = Vector3(rng.randf_range(-0.08, 0.08), rng.randf() * TAU, rng.randf_range(-0.05, 0.05))
+	for i in 28:
+		var p := Vector3(rng.randf_range(-arena_half_x + 900.0, arena_half_x - 900.0), 0.06, rng.randf_range(-arena_half_z + 800.0, arena_half_z - 800.0))
+		if p.length() < 240.0:
+			continue
+		var ramp := _add_box(parent, Vector3(rng.randf_range(8.0, 18.0), 0.35, rng.randf_range(5.0, 11.0)), p, Color(0.28, 0.25, 0.22), "MudRamp")
+		ramp.rotation = Vector3(rng.randf_range(-0.08, 0.08), rng.randf() * TAU, rng.randf_range(-0.05, 0.05))
+
+
+func _scatter_field_vehicles(parent: Node3D) -> void:
+	var points := [
+		Vector3(-62, 0.7, 54),
+		Vector3(720, 0.7, -820),
+		Vector3(-1500, 0.7, 1520),
+		Vector3(-5480, 0.7, -780),
+		Vector3(-4280, 0.7, 1180),
+		Vector3(2540, 0.7, 4180),
+		Vector3(-1220, 0.7, -4220),
+		Vector3(6160, 0.7, 1220),
+		Vector3(4520, 0.7, -3200),
+	]
+	var yaw := 0.0
+	for p in points:
+		_spawn_field_vehicle(parent, p, yaw)
+		yaw += 0.73
+
+
+func _spawn_field_vehicle(parent: Node3D, pos: Vector3, yaw: float) -> void:
+	var script := load("res://scripts/vehicle.gd") as GDScript
+	var v: CharacterBody3D = script.new()
+	v.name = "RuggedTruck"
+	v.max_speed = 30.0
+	v.accel = 18.0
+	v.turn_speed = 1.85
+	parent.add_child(v)
+	v.global_position = pos
+	v.rotation.y = yaw
 
 
 func _near_buildings(pos: Vector3, radius: float) -> bool:
@@ -897,11 +1001,11 @@ func _scatter_loot(parent: Node3D) -> void:
 	var script := load("res://scripts/loot_crate.gd") as GDScript
 	var placed: int = 0
 	var attempts: int = 0
-	while placed < 28 and attempts < 280:
+	while placed < 86 and attempts < 860:
 		attempts += 1
 		var angle: float = rng.randf() * TAU
-		var r: float = rng.randf_range(35.0, 600.0)
-		var p := Vector3(cos(angle) * r, 1.0, sin(angle) * r * 0.7)
+		var r: float = rng.randf_range(35.0, 5600.0)
+		var p := Vector3(cos(angle) * r, 1.0, sin(angle) * r * 0.84)
 		if absf(p.x) > arena_half_x - 5 or absf(p.z) > arena_half_z - 5:
 			continue
 		if p.length() < SAFE_ZONE_RADIUS + 6.0:
@@ -917,7 +1021,12 @@ func _build_mines_and_pickups(parent: Node3D) -> void:
 	_spawn_resource(parent, Vector3(3.0, 0.0, -6.0), "Crude Bat", "wood", 0, 1, "weapon", "Bat")
 	_spawn_resource(parent, Vector3(-20.0, 0.0, -13.0), "Camp Axe", "wood", 0, 1, "weapon", "Axe")
 	_spawn_resource(parent, Vector3(760.0, 0.0, 690.0), "River Spear", "wood", 0, 1, "weapon", "Spear")
+	_spawn_resource(parent, Vector3(72.0, 0.0, 46.0), "Hunting Knife", "wood", 0, 1, "weapon", "Knife")
+	_spawn_resource(parent, Vector3(-1280.0, 0.0, -3560.0), "Brush Machete", "wood", 0, 1, "weapon", "Machete")
+	_spawn_resource(parent, Vector3(2860.0, 0.0, 4120.0), "Old Rifle", "wood", 0, 1, "weapon", "Rifle")
+	_spawn_resource(parent, Vector3(-5200.0, 0.0, -920.0), "Pump Shotgun", "wood", 0, 1, "weapon", "Shotgun")
 	_spawn_resource(parent, OBJECTIVE_POS + Vector3(-18.0, 0.0, 8.0), "Signal Pistol", "wood", 0, 1, "weapon", "Pistol")
+	_scatter_random_weapon_pickups(parent)
 
 	var wood_points := [
 		Vector3(9, 0, -12), Vector3(-8, 0, 12), Vector3(24, 0, 28),
@@ -946,6 +1055,51 @@ func _build_mines_and_pickups(parent: Node3D) -> void:
 		_spawn_resource(parent, Vector3(x, 0.0, 900.0 - x * 0.3 + 80.0), "Fish", "fish", 1, 1, "fish")
 	for i in 7:
 		_spawn_resource(parent, Vector3(6100.0 + i * 180.0, 0.0, -2100.0 + i * 540.0), "Ocean Fish", "fish", 2, 1, "fish")
+	_scatter_resource_density(parent)
+
+
+func _scatter_random_weapon_pickups(parent: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 55140
+	var pool := [
+		["Rusty Knife", "Knife"],
+		["Trail Machete", "Machete"],
+		["Hunter Rifle", "Rifle"],
+		["Sawed Shotgun", "Shotgun"],
+		["Spare Pistol", "Pistol"],
+		["Field Axe", "Axe"],
+		["Long Spear", "Spear"],
+	]
+	for i in 46:
+		var angle := rng.randf() * TAU
+		var radius := rng.randf_range(420.0, 5600.0)
+		var p := Vector3(cos(angle) * radius, 0.0, sin(angle) * radius * 0.86)
+		p.x = clamp(p.x, -arena_half_x + 80.0, arena_half_x - 80.0)
+		p.z = clamp(p.z, -arena_half_z + 80.0, arena_half_z - 80.0)
+		if p.length() < 180.0:
+			continue
+		var choice: Array = pool[rng.randi_range(0, pool.size() - 1)]
+		_spawn_resource(parent, p, String(choice[0]), "wood", 0, 1, "weapon", String(choice[1]))
+
+
+func _scatter_resource_density(parent: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 88031
+	for i in 58:
+		var angle := rng.randf() * TAU
+		var radius := rng.randf_range(120.0, 5400.0)
+		var p := Vector3(cos(angle) * radius, 0.0, sin(angle) * radius * 0.86)
+		var biome := get_biome_at(p)
+		if biome == "ocean":
+			_spawn_resource(parent, p, "Ocean Fish", "fish", 2, 1, "fish")
+		elif biome == "river":
+			_spawn_resource(parent, p, "Fish", "fish", 1, 1, "fish")
+		elif biome == "desert":
+			_spawn_resource(parent, p, "Stone", "stone", 2, 1, "stone")
+		elif biome == "plains" or biome == "autumn":
+			_spawn_resource(parent, p, "Wood", "wood", 4, 1, "wood")
+		else:
+			_spawn_resource(parent, p, "Stone", "stone", 3, 1, "stone")
 
 
 func _spawn_resource(parent: Node3D, pos: Vector3, label_text: String, item_id: String, amount: int, uses: int, kind: String, unlock_name: String = "") -> Node3D:
@@ -1077,6 +1231,105 @@ func _check_objective() -> void:
 	if (player as Node3D).global_position.distance_to(OBJECTIVE_POS) <= 15.0:
 		_objective_reached = true
 		GameManager.show_toast("Radio tower reached. The expedition can now push deeper.")
+
+
+func _seed_regional_zombies(parent: Node3D) -> void:
+	if zombie_scene == null:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 44291
+	var regions := [
+		{"center": Vector3(0, 0, 0), "radius": 1350.0, "count": 18, "type": "snow"},
+		{"center": Vector3(-5600, 0, -800), "radius": 1500.0, "count": 18, "type": "desert"},
+		{"center": Vector3(-900, 0, 1180), "radius": 1700.0, "count": 20, "type": "river"},
+		{"center": Vector3(2600, 0, 4200), "radius": 1600.0, "count": 18, "type": "plains"},
+		{"center": Vector3(-1300, 0, -4300), "radius": 1500.0, "count": 18, "type": "autumn"},
+		{"center": Vector3(6200, 0, 1200), "radius": 1700.0, "count": 16, "type": "coast"},
+	]
+	for region in regions:
+		var center: Vector3 = region["center"]
+		var count: int = int(region["count"])
+		var radius: float = float(region["radius"])
+		for i in count:
+			var angle := rng.randf() * TAU
+			var dist := rng.randf_range(80.0, radius)
+			var p := center + Vector3(cos(angle) * dist, 1.0, sin(angle) * dist * 0.82)
+			p.x = clamp(p.x, -arena_half_x + 20.0, arena_half_x - 20.0)
+			p.z = clamp(p.z, -arena_half_z + 20.0, arena_half_z - 20.0)
+			if p.length() < SAFE_ZONE_RADIUS + 32.0:
+				continue
+			_spawn_zombie_at(parent, p, _regional_zombie_type(String(region["type"])), false)
+
+
+func _regional_zombie_type(region: String) -> Dictionary:
+	match region:
+		"desert":
+			return {"name": "Dune Husk", "scale": 1.1, "body_color": Color(0.62, 0.42, 0.22), "skin_color": Color(0.82, 0.62, 0.38), "eye_color": Color(1.0, 0.5, 0.1), "hp": 85.0, "speed": 2.9, "damage": 14.0}
+		"river":
+			return {"name": "River Spider", "rig": "spider", "scale": 1.15, "body_color": Color(0.12, 0.24, 0.28), "skin_color": Color(0.22, 0.48, 0.52), "eye_color": Color(0.2, 0.9, 1.0), "hp": 80.0, "speed": 3.3, "damage": 15.0}
+		"plains":
+			return {"name": "Plainstalker", "rig": "wolf", "scale": 1.2, "body_color": Color(0.28, 0.34, 0.2), "skin_color": Color(0.46, 0.52, 0.32), "eye_color": Color(0.9, 1.0, 0.25), "hp": 90.0, "speed": 3.8, "damage": 16.0}
+		"autumn":
+			return {"name": "Ash Runner", "scale": 1.0, "body_color": Color(0.44, 0.2, 0.12), "skin_color": Color(0.62, 0.36, 0.22), "eye_color": Color(1.0, 0.3, 0.08), "hp": 75.0, "speed": 4.0, "damage": 13.0}
+		"coast":
+			return {"name": "Coast Beetle", "rig": "beetle", "scale": 1.2, "body_color": Color(0.08, 0.24, 0.32), "skin_color": Color(0.24, 0.58, 0.68), "eye_color": Color(0.45, 1.0, 0.85), "hp": 105.0, "speed": 2.7, "damage": 17.0}
+		_:
+			return {"name": "Frost Husk", "scale": 1.1, "body_color": Color(0.32, 0.5, 0.62), "skin_color": Color(0.7, 0.86, 0.92), "eye_color": Color(0.45, 0.9, 1.0), "hp": 90.0, "speed": 2.8, "damage": 15.0}
+
+
+func _spawn_regional_bosses(parent: Node3D) -> void:
+	if zombie_scene == null:
+		return
+	var bosses := [
+		{"name": "Frost Matriarch", "pos": Vector3(1040, 1, -1120), "rig": "tiger", "scale": 2.2, "hp": 520.0, "speed": 2.6, "damage": 31.0, "body": Color(0.6, 0.8, 0.9), "skin": Color(0.86, 0.96, 1.0), "eye": Color(0.25, 0.9, 1.0)},
+		{"name": "Dune Warden", "pos": Vector3(-5880, 1, -980), "rig": "humanoid", "scale": 2.45, "hp": 610.0, "speed": 1.9, "damage": 36.0, "body": Color(0.7, 0.45, 0.2), "skin": Color(0.88, 0.62, 0.34), "eye": Color(1.0, 0.45, 0.12)},
+		{"name": "River Broodmother", "pos": Vector3(-880, 1, 1350), "rig": "spider", "scale": 2.4, "hp": 560.0, "speed": 2.4, "damage": 32.0, "body": Color(0.08, 0.22, 0.28), "skin": Color(0.18, 0.44, 0.52), "eye": Color(0.3, 1.0, 0.95)},
+		{"name": "Plain Alpha", "pos": Vector3(2940, 1, 4260), "rig": "wolf", "scale": 2.15, "hp": 500.0, "speed": 3.2, "damage": 30.0, "body": Color(0.28, 0.38, 0.2), "skin": Color(0.46, 0.6, 0.34), "eye": Color(0.9, 1.0, 0.18)},
+		{"name": "Ashfang", "pos": Vector3(-1460, 1, -4480), "rig": "tiger", "scale": 2.25, "hp": 540.0, "speed": 2.9, "damage": 34.0, "body": Color(0.5, 0.18, 0.09), "skin": Color(0.74, 0.35, 0.16), "eye": Color(1.0, 0.28, 0.08)},
+		{"name": "Coast Shellback", "pos": Vector3(6380, 1, 1240), "rig": "beetle", "scale": 2.55, "hp": 650.0, "speed": 2.0, "damage": 38.0, "body": Color(0.06, 0.18, 0.28), "skin": Color(0.18, 0.52, 0.65), "eye": Color(0.5, 1.0, 0.85)},
+	]
+	for b in bosses:
+		var boss_type := {
+			"name": String(b["name"]),
+			"rig": String(b["rig"]),
+			"scale": float(b["scale"]),
+			"body_color": b["body"],
+			"skin_color": b["skin"],
+			"eye_color": b["eye"],
+			"hp": float(b["hp"]),
+			"speed": float(b["speed"]),
+			"damage": float(b["damage"]),
+		}
+		_spawn_zombie_at(parent, b["pos"], boss_type, true)
+
+
+func _spawn_zombie_at(parent: Node3D, pos: Vector3, type_def: Dictionary, territorial_boss: bool) -> Node3D:
+	var z := zombie_scene.instantiate()
+	z.position = pos
+	parent.add_child(z)
+	if z.has_method("apply_type"):
+		z.apply_type(type_def)
+	if territorial_boss:
+		z.name = String(type_def.get("name", "TerritorialBoss")).replace(" ", "")
+		z.add_to_group("territorial_bosses")
+		z.set("detect_range", 130.0)
+		_add_boss_label(z, String(type_def.get("name", "Territorial Boss")))
+	else:
+		z.set("detect_range", 95.0)
+	return z
+
+
+func _add_boss_label(boss: Node3D, label_text: String) -> void:
+	var label := Label3D.new()
+	label.text = label_text.to_upper()
+	label.font_size = 34
+	label.outline_size = 10
+	label.outline_modulate = Color(0, 0, 0, 0.9)
+	label.modulate = Color(1.0, 0.56, 0.28)
+	label.position = Vector3(0, 3.8, 0)
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	boss.add_child(label)
 
 
 func _spawn_vehicle() -> void:

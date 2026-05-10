@@ -43,6 +43,12 @@ const SCRAP_REWARDS: Dictionary = {
 	"Tiger": 26,
 	"Giant Spider": 14,
 	"Frost Beetle": 16,
+	"Frost Matriarch": 90,
+	"Dune Warden": 120,
+	"River Broodmother": 105,
+	"Plain Alpha": 90,
+	"Ashfang": 110,
+	"Coast Shellback": 130,
 	"Frost Titan": 0,  # boss reward handled separately
 }
 
@@ -140,11 +146,16 @@ func _register_inputs() -> void:
 	_add_key("weapon_2", KEY_2)
 	_add_key("weapon_3", KEY_3)
 	_add_key("weapon_4", KEY_4)
+	_add_key("weapon_5", KEY_5)
+	_add_key("weapon_6", KEY_6)
+	_add_key("weapon_7", KEY_7)
+	_add_key("weapon_8", KEY_8)
 	_add_key("skill_fire", KEY_Q)
 	_add_key("skill_frost", KEY_E)
 	_add_key("skill_lightning", KEY_F)
 	_add_key("interact", KEY_G)
 	_add_key("build_shelter", KEY_B)
+	_add_key("toggle_map", KEY_M)
 
 
 func _add_key(action: String, keycode: Key) -> void:

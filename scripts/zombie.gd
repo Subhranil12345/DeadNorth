@@ -23,6 +23,7 @@ var health: float
 var attack_timer: float = 0.0
 var is_dead: bool = false
 var _flashing: bool = false
+var _hit_tween: Tween = null
 var _target: Node3D = null
 var _body_color_cache: Color = Color(0.32, 0.42, 0.36)
 
@@ -315,6 +316,7 @@ func take_damage(amount: float, dmg_type: String = "physical") -> void:
 		amount *= RESISTANCE_FACTOR
 	health -= amount
 	_flash_hit()
+	_play_hit_reaction()
 	if health <= 0.0:
 		_die()
 		return
@@ -418,6 +420,22 @@ func _flash_hit() -> void:
 		if current is StandardMaterial3D:
 			(current as StandardMaterial3D).albedo_color = _body_color_cache
 	_flashing = false
+
+
+func _play_hit_reaction() -> void:
+	if visuals == null or not is_instance_valid(visuals):
+		return
+	if _hit_tween and _hit_tween.is_valid():
+		_hit_tween.kill()
+	visuals.position = Vector3.ZERO
+	visuals.scale = Vector3.ONE * visual_scale
+	_hit_tween = create_tween()
+	_hit_tween.set_trans(Tween.TRANS_SINE)
+	_hit_tween.set_ease(Tween.EASE_OUT)
+	_hit_tween.tween_property(visuals, "position", Vector3(0.0, 0.06 * visual_scale, 0.18 * visual_scale), 0.06)
+	_hit_tween.parallel().tween_property(visuals, "scale", Vector3.ONE * visual_scale * 1.04, 0.06)
+	_hit_tween.tween_property(visuals, "position", Vector3.ZERO, 0.13)
+	_hit_tween.parallel().tween_property(visuals, "scale", Vector3.ONE * visual_scale, 0.13)
 
 
 func _die() -> void:

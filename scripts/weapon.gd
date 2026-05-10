@@ -6,13 +6,17 @@ extends Node3D
 
 signal weapon_changed(weapon_name: String)
 
-enum WeaponType { BAT, AXE, SPEAR, PISTOL }
+enum WeaponType { BAT, AXE, SPEAR, PISTOL, KNIFE, MACHETE, RIFLE, SHOTGUN }
 
 const WEAPONS: Dictionary = {
 	WeaponType.BAT:    {"name": "Bat",    "damage": 35.0, "range": 2.4, "arc_dot": 0.35, "cooldown": 0.45, "ranged": false, "pierce": false},
 	WeaponType.AXE:    {"name": "Axe",    "damage": 65.0, "range": 2.6, "arc_dot": 0.50, "cooldown": 0.85, "ranged": false, "pierce": false},
 	WeaponType.SPEAR:  {"name": "Spear",  "damage": 42.0, "range": 3.6, "arc_dot": 0.85, "cooldown": 0.55, "ranged": false, "pierce": false},
 	WeaponType.PISTOL: {"name": "Pistol", "damage": 28.0, "range": 60.0, "arc_dot": 0.985, "cooldown": 0.32, "ranged": true, "pierce": false},
+	WeaponType.KNIFE:  {"name": "Knife",  "damage": 20.0, "range": 1.8, "arc_dot": 0.55, "cooldown": 0.24, "ranged": false, "pierce": false},
+	WeaponType.MACHETE: {"name": "Machete", "damage": 52.0, "range": 2.8, "arc_dot": 0.45, "cooldown": 0.58, "ranged": false, "pierce": false},
+	WeaponType.RIFLE:  {"name": "Rifle",  "damage": 62.0, "range": 95.0, "arc_dot": 0.995, "cooldown": 0.78, "ranged": true, "pierce": false},
+	WeaponType.SHOTGUN: {"name": "Shotgun", "damage": 84.0, "range": 34.0, "arc_dot": 0.94, "cooldown": 0.95, "ranged": true, "pierce": false},
 }
 
 const HANDS: Dictionary = {"name": "Hands", "damage": 6.0, "range": 1.35, "arc_dot": 0.62, "cooldown": 0.62, "ranged": false, "pierce": false}
@@ -97,6 +101,8 @@ func attack(origin: Vector3, forward: Vector3, dmg_mult: float = 1.0) -> void:
 	if ranged:
 		var best: Node = null
 		var best_dist: float = INF
+		var bullet_start := origin + Vector3(0.0, 1.35, 0.0) + fwd * 0.55
+		var bullet_end := bullet_start + fwd * rng
 		for z in get_tree().get_nodes_in_group("zombies"):
 			if not is_instance_valid(z) or z.get("is_dead") == true:
 				continue
@@ -111,7 +117,11 @@ func attack(origin: Vector3, forward: Vector3, dmg_mult: float = 1.0) -> void:
 				best_dist = d
 				best = z
 		if best and best.has_method("take_damage"):
+			bullet_end = (best as Node3D).global_position + Vector3(0.0, 1.05, 0.0)
+			_spawn_bullet_trace(bullet_start, bullet_end)
 			best.take_damage(dmg, dmg_type)
+		else:
+			_spawn_bullet_trace(bullet_start, bullet_end)
 		return
 
 	# Melee: arc cone, hit everyone caught in the swing.
@@ -160,6 +170,22 @@ func _build_visuals() -> void:
 	var pistol := _build_pistol()
 	add_child(pistol)
 	_visuals[WeaponType.PISTOL] = pistol
+
+	var knife := _build_knife()
+	add_child(knife)
+	_visuals[WeaponType.KNIFE] = knife
+
+	var machete := _build_machete()
+	add_child(machete)
+	_visuals[WeaponType.MACHETE] = machete
+
+	var rifle := _build_rifle()
+	add_child(rifle)
+	_visuals[WeaponType.RIFLE] = rifle
+
+	var shotgun := _build_shotgun()
+	add_child(shotgun)
+	_visuals[WeaponType.SHOTGUN] = shotgun
 
 
 func set_rest_pose(pos: Vector3, rot: Vector3) -> void:
@@ -242,6 +268,44 @@ func _build_pistol() -> Node3D:
 	return n
 
 
+func _build_knife() -> Node3D:
+	var n := Node3D.new()
+	n.name = "_Knife"
+	n.add_child(_make_box(Vector3(0.08, 0.08, 0.42), Color(0.18, 0.12, 0.08), Vector3(0.0, -0.02, 0.08)))
+	n.add_child(_make_box(Vector3(0.12, 0.08, 0.55), Color(0.82, 0.84, 0.82), Vector3(0.0, 0.0, -0.38), 0.7, 0.28))
+	n.add_child(_make_box(Vector3(0.28, 0.08, 0.08), Color(0.08, 0.08, 0.08), Vector3(0.0, 0.0, -0.1)))
+	return n
+
+
+func _build_machete() -> Node3D:
+	var n := Node3D.new()
+	n.name = "_Machete"
+	n.add_child(_make_box(Vector3(0.09, 0.09, 0.52), Color(0.16, 0.1, 0.06), Vector3(0.0, -0.02, 0.22)))
+	n.add_child(_make_box(Vector3(0.18, 0.08, 1.15), Color(0.72, 0.74, 0.72), Vector3(0.08, 0.0, -0.48), 0.65, 0.32))
+	n.add_child(_make_box(Vector3(0.32, 0.1, 0.1), Color(0.08, 0.08, 0.08), Vector3(0.0, 0.0, -0.05)))
+	return n
+
+
+func _build_rifle() -> Node3D:
+	var n := Node3D.new()
+	n.name = "_Rifle"
+	n.add_child(_make_box(Vector3(0.12, 0.2, 0.86), Color(0.28, 0.18, 0.1), Vector3(0.0, -0.02, 0.12)))
+	n.add_child(_make_box(Vector3(0.08, 0.1, 1.05), Color(0.18, 0.19, 0.2), Vector3(0.0, 0.08, -0.55), 0.7, 0.32))
+	n.add_child(_make_box(Vector3(0.1, 0.1, 0.48), Color(0.06, 0.06, 0.07), Vector3(0.0, 0.08, -1.25), 0.45, 0.35))
+	n.add_child(_make_box(Vector3(0.22, 0.08, 0.18), Color(0.04, 0.04, 0.045), Vector3(0.0, 0.23, -0.45), 0.5, 0.34))
+	return n
+
+
+func _build_shotgun() -> Node3D:
+	var n := Node3D.new()
+	n.name = "_Shotgun"
+	n.add_child(_make_box(Vector3(0.15, 0.22, 0.72), Color(0.24, 0.14, 0.08), Vector3(0.0, -0.02, 0.14)))
+	n.add_child(_make_box(Vector3(0.08, 0.08, 1.1), Color(0.11, 0.12, 0.13), Vector3(-0.06, 0.1, -0.58), 0.6, 0.35))
+	n.add_child(_make_box(Vector3(0.08, 0.08, 1.1), Color(0.11, 0.12, 0.13), Vector3(0.06, 0.1, -0.58), 0.6, 0.35))
+	n.add_child(_make_box(Vector3(0.22, 0.12, 0.34), Color(0.28, 0.18, 0.1), Vector3(0.0, -0.08, -0.55)))
+	return n
+
+
 func _muzzle_flash() -> void:
 	var v: Node3D = _visuals.get(current_type, null)
 	if v == null:
@@ -264,6 +328,51 @@ func _muzzle_flash() -> void:
 	t.tween_property(flash, "scale", Vector3(0.1, 0.1, 0.1), 0.06)
 	t.parallel().tween_property(mat, "albedo_color", Color(1.0, 0.9, 0.5, 0.0), 0.06)
 	t.tween_callback(flash.queue_free)
+
+
+func _spawn_bullet_trace(start_pos: Vector3, end_pos: Vector3) -> void:
+	var scene := get_tree().current_scene
+	if scene == null or start_pos.distance_to(end_pos) < 0.2:
+		return
+
+	var bullet := MeshInstance3D.new()
+	bullet.name = "Bullet"
+	var sm := SphereMesh.new()
+	sm.radius = 0.075
+	sm.height = 0.15
+	bullet.mesh = sm
+	var bmat := StandardMaterial3D.new()
+	bmat.albedo_color = Color(1.0, 0.86, 0.32, 0.95)
+	bmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bmat.emission_enabled = true
+	bmat.emission = Color(1.0, 0.78, 0.28)
+	bmat.emission_energy_multiplier = 2.4
+	bullet.material_override = bmat
+	scene.add_child(bullet)
+	bullet.global_position = start_pos
+
+	var trail := MeshInstance3D.new()
+	trail.name = "BulletTrail"
+	var dist := start_pos.distance_to(end_pos)
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.035, 0.035, dist)
+	trail.mesh = bm
+	var tmat := StandardMaterial3D.new()
+	tmat.albedo_color = Color(1.0, 0.82, 0.24, 0.42)
+	tmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	tmat.emission_enabled = true
+	tmat.emission = Color(1.0, 0.72, 0.22)
+	tmat.emission_energy_multiplier = 1.6
+	trail.material_override = tmat
+	scene.add_child(trail)
+	trail.global_position = (start_pos + end_pos) * 0.5
+	trail.look_at(end_pos, Vector3.UP)
+
+	var tween := create_tween()
+	tween.tween_property(bullet, "global_position", end_pos, 0.075)
+	tween.parallel().tween_property(trail, "scale", Vector3(0.35, 0.35, 0.35), 0.075)
+	tween.tween_callback(bullet.queue_free)
+	tween.parallel().tween_callback(trail.queue_free)
 
 
 # -- Animation ------------------------------------------------------------

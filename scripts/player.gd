@@ -173,9 +173,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("attack") and attack_timer <= 0.0:
 		_do_attack()
 
-	# Weapon swap (1..4)
+	# Weapon swap (1..8)
 	if weapon and weapon.has_method("set_weapon"):
-		for i in 4:
+		for i in 8:
 			if event.is_action_pressed("weapon_%d" % (i + 1)):
 				weapon.set_weapon(i)
 				break
