@@ -1,7 +1,14 @@
 63f7b34db8d8cdea90c76aacccf841ec
-::res://::1778514691
+::res://::1778515637
 icon.svg::CompressedTexture2D::4989935414498516007::1778369791::1778398263::1::::<><><>0<>0<>1130890c8791e361686a42e323148a3d<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
 README.md::TextFile::-1::1778442567::0::1::::<><><>0<>0<><>::
+::res://assets/::1778515645
+::res://assets/zombie/::1778515655
+Zombie_Game_Ready_zombie_metallic_new-zombie_roughness_new.png::CompressedTexture2D::1347914456019032264::1778515654::1778515656::1::::<><><>0<>0<>d0d7c1ba0553af6f245dd928908b5d0e<>res://.godot/imported/Zombie_Game_Ready_zombie_metallic_new-zombie_roughness_new.png-8ac0d0d1d429dbef93fbcadca8d0e677.s3tc.ctex::
+Zombie_Game_Ready_zombie_basecolor_new.png::CompressedTexture2D::3147213819512600561::1778515653::1778515656::1::::<><><>0<>0<>c03f04fc8cc2959140b72cc79d4fbb07<>res://.godot/imported/Zombie_Game_Ready_zombie_basecolor_new.png-0f228c5cd53b4f319053065a0473f90d.s3tc.ctex::
+Zombie_Game_Ready_zombie_normal_new.png::CompressedTexture2D::6380211157231367808::1778515652::1778515656::1::::<><><>0<>0<>e1ecc1d30d512a899dae9323b198f80d<>res://.godot/imported/Zombie_Game_Ready_zombie_normal_new.png-581a225033df8cb3e9bb18636ec342fd.s3tc.ctex::
+Zombie_Game_Ready_zombie_emissive_new.png::CompressedTexture2D::8064468429700128039::1778515652::1778515656::1::::<><><>0<>0<>33ae59d30cce1cc7fa14134572317961<>res://.godot/imported/Zombie_Game_Ready_zombie_emissive_new.png-a04b5376c17ca09e98af20e91f4f60e5.s3tc.ctex::
+Zombie_Game_Ready.glb::PackedScene::6961346405228614399::1778515651::1778515655::1::::<><><>0<>0<>ca47e7742a97d93d48b6261f936c117c<>res://.godot/imported/Zombie_Game_Ready.glb-654a94a19ae2701d2b1aa67fdea6b8b4.scn::uid://bk3sffqdmfsc4::::res://assets/zombie/Zombie_Game_Ready_zombie_basecolor_new.png<>uid://tg67pahrih1i::::res://assets/zombie/Zombie_Game_Ready_zombie_metallic_new-zombie_roughness_new.png<>uid://dm5qu8a33c80b::::res://assets/zombie/Zombie_Game_Ready_zombie_emissive_new.png<>uid://cw5ve7kvke2fk::::res://assets/zombie/Zombie_Game_Ready_zombie_normal_new.png
 ::res://scenes/::1778443217
 hud.tscn::PackedScene::-1::1778370055::0::1::::<><><>0<>0<><>::res://scripts/hud.gd
 main.tscn::PackedScene::-1::1778398945::0::1::::<><><>0<>0<><>::res://scripts/world.gd<>res://scenes/player.tscn<>res://scenes/hud.tscn<>res://scenes/zombie.tscn<>res://scripts/day_night.gd
