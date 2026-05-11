@@ -173,9 +173,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("attack") and attack_timer <= 0.0:
 		_do_attack()
 
-	# Weapon swap (1..8)
+	# Weapon swap (1..9)
 	if weapon and weapon.has_method("set_weapon"):
-		for i in 8:
+		for i in 9:
 			if event.is_action_pressed("weapon_%d" % (i + 1)):
 				weapon.set_weapon(i)
 				break
@@ -455,6 +455,11 @@ func take_damage(amount: float) -> void:
 
 func _die() -> void:
 	is_dead = true
+	# Eject from any vehicle we were driving — otherwise the player would be
+	# trapped inside it and still able to roll around via the vehicle's input.
+	if in_vehicle and current_vehicle and is_instance_valid(current_vehicle):
+		if current_vehicle.has_method("exit_vehicle"):
+			current_vehicle.exit_vehicle()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	GameManager.notify_player_died()
 	# Topple the body forward.
@@ -533,6 +538,15 @@ func set_in_vehicle(vehicle: Node) -> void:
 			camera.make_current()
 
 
+func _has_warmth_weapon() -> bool:
+	if weapon == null:
+		return false
+	if not weapon.has_method("get_stats"):
+		return false
+	var stats: Dictionary = weapon.get_stats()
+	return bool(stats.get("warmth", false))
+
+
 func _tick_survival(delta: float) -> void:
 	if is_dead:
 		return
@@ -546,10 +560,30 @@ func _tick_survival(delta: float) -> void:
 			in_sanctuary = true
 			break
 
+	# Houses are warmth-only mini-shelters. Health/stamina still requires
+	# the main sanctuary, but warmth refills here too.
+	var in_warmth_zone: bool = false
+	if not in_sanctuary:
+		for wz in get_tree().get_nodes_in_group("warmth_zone"):
+			if not (wz is Node3D):
+				continue
+			var c: Vector3 = (wz as Node3D).global_position
+			var r: float = float(wz.get_meta("radius", 5.5))
+			if global_position.distance_to(c) <= r:
+				in_warmth_zone = true
+				break
+
+	# Equipped torch / burning club emits warmth around the player.
+	var carrying_torch: bool = _has_warmth_weapon()
+
 	# Warmth: drain outside, recover inside. Weather can multiply the drain.
-	if in_sanctuary:
+	if in_sanctuary or in_warmth_zone:
 		if warmth < max_warmth:
 			warmth = min(max_warmth, warmth + 12.0 * delta)
+	elif carrying_torch:
+		# Torch keeps warmth steady (small net gain) — drain is offset by the flame.
+		if warmth < max_warmth:
+			warmth = min(max_warmth, warmth + 3.5 * delta)
 	else:
 		var weather_mult: float = float(GameManager.current_weather_def().get("warmth_drain_mult", 1.0))
 		var drain: float = warmth_drain_base * warmth_drain_mult * weather_mult

@@ -48,6 +48,11 @@ var _status_indicator: MeshInstance3D = null
 
 func _ready() -> void:
 	add_to_group("zombies")
+	# Layer 1 = default world body (so walls/ground keep blocking us),
+	# layer 2 = monster-only flag (so doorway barriers block zombies but
+	# not the player). Mask must include both so we detect either kind.
+	collision_layer = 1 | 2
+	collision_mask = 1 | 2
 	health = max_health
 
 

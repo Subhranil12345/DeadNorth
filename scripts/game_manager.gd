@@ -150,6 +150,7 @@ func _register_inputs() -> void:
 	_add_key("weapon_6", KEY_6)
 	_add_key("weapon_7", KEY_7)
 	_add_key("weapon_8", KEY_8)
+	_add_key("weapon_9", KEY_9)
 	_add_key("skill_fire", KEY_Q)
 	_add_key("skill_frost", KEY_E)
 	_add_key("skill_lightning", KEY_F)

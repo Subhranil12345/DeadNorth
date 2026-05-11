@@ -31,6 +31,10 @@ var collision_shape: CollisionShape3D = null
 func _ready() -> void:
 	add_to_group("zombies")  # so player skills/weapons hit us through existing code
 	add_to_group("boss")
+	# Match zombie collision layers so monster-only doorway barriers also
+	# block the boss.
+	collision_layer = 1 | 2
+	collision_mask = 1 | 2
 	_build()
 	health = max_health
 	GameManager.notify_boss_spawned(self, max_health)

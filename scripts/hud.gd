@@ -60,7 +60,7 @@ func _ready() -> void:
 	GameManager.inventory_changed.connect(_on_inventory_changed)
 
 	center_label.visible = false
-	hint_label.text = "WASD move | Shift sprint | LMB attack | 1-8 weapon | QEF skills | G interact | B build | M map | Esc cursor"
+	hint_label.text = "WASD move | Shift sprint | LMB attack | 1-9 weapon | QEF skills | G interact | B build | M map | Esc cursor"
 
 	_build_weapon_panel()
 	_build_skill_panel()
@@ -269,13 +269,13 @@ func _refresh_map_marker() -> void:
 	if _map_overlay == null or not _map_overlay.visible or _player == null or not is_instance_valid(_player):
 		return
 	_map_player_dot.position = _world_to_map((_player as Node3D).global_position) - _map_player_dot.size * 0.5
-	_map_objective_dot.position = _world_to_map(Vector3(5200.0, 0.0, -4300.0)) - _map_objective_dot.size * 0.5
+	_map_objective_dot.position = _world_to_map(Vector3(1300.0, 0.0, -1075.0)) - _map_objective_dot.size * 0.5
 
 
 func _world_to_map(world_pos: Vector3) -> Vector2:
 	var scene := get_tree().current_scene
-	var half_x := 8000.0
-	var half_z := 6000.0
+	var half_x := 2000.0
+	var half_z := 2000.0
 	if scene != null:
 		var scene_half_x = scene.get("arena_half_x")
 		var scene_half_z = scene.get("arena_half_z")

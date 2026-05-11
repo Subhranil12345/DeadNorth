@@ -6,7 +6,7 @@ extends Node3D
 
 signal weapon_changed(weapon_name: String)
 
-enum WeaponType { BAT, AXE, SPEAR, PISTOL, KNIFE, MACHETE, RIFLE, SHOTGUN }
+enum WeaponType { BAT, AXE, SPEAR, PISTOL, KNIFE, MACHETE, RIFLE, SHOTGUN, TORCH }
 
 const WEAPONS: Dictionary = {
 	WeaponType.BAT:    {"name": "Bat",    "damage": 35.0, "range": 2.4, "arc_dot": 0.35, "cooldown": 0.45, "ranged": false, "pierce": false},
@@ -17,6 +17,10 @@ const WEAPONS: Dictionary = {
 	WeaponType.MACHETE: {"name": "Machete", "damage": 52.0, "range": 2.8, "arc_dot": 0.45, "cooldown": 0.58, "ranged": false, "pierce": false},
 	WeaponType.RIFLE:  {"name": "Rifle",  "damage": 62.0, "range": 95.0, "arc_dot": 0.995, "cooldown": 0.78, "ranged": true, "pierce": false},
 	WeaponType.SHOTGUN: {"name": "Shotgun", "damage": 84.0, "range": 34.0, "arc_dot": 0.94, "cooldown": 0.95, "ranged": true, "pierce": false},
+	# Burning Club: low damage but keeps warmth steady while equipped, and
+	# every hit applies a brief burn (handled by zombie.apply_burn when the
+	# damage type is "fire").
+	WeaponType.TORCH:  {"name": "Burning Club", "damage": 22.0, "range": 2.2, "arc_dot": 0.45, "cooldown": 0.55, "ranged": false, "pierce": false, "warmth": true, "fire": true},
 }
 
 const HANDS: Dictionary = {"name": "Hands", "damage": 6.0, "range": 1.35, "arc_dot": 0.62, "cooldown": 0.62, "ranged": false, "pierce": false}
@@ -80,6 +84,10 @@ func attack(origin: Vector3, forward: Vector3, dmg_mult: float = 1.0) -> void:
 	var s: Dictionary = get_stats()
 	var ranged: bool = bool(s["ranged"])
 	var dmg_type: String = "ranged" if ranged else "melee"
+	# Burning Club deals fire damage and applies a short burn on hit.
+	var is_fire: bool = bool(s.get("fire", false))
+	if is_fire:
+		dmg_type = "fire"
 	GameManager.record_damage_use(dmg_type)
 	if ranged:
 		_play_recoil()
@@ -137,6 +145,8 @@ func attack(origin: Vector3, forward: Vector3, dmg_mult: float = 1.0) -> void:
 			continue
 		if z.has_method("take_damage"):
 			z.take_damage(dmg, dmg_type)
+		if is_fire and z.has_method("apply_burn"):
+			z.apply_burn(6.0, 2.5)
 
 
 # -- Visuals --------------------------------------------------------------
@@ -186,6 +196,10 @@ func _build_visuals() -> void:
 	var shotgun := _build_shotgun()
 	add_child(shotgun)
 	_visuals[WeaponType.SHOTGUN] = shotgun
+
+	var torch := _build_torch()
+	add_child(torch)
+	_visuals[WeaponType.TORCH] = torch
 
 
 func set_rest_pose(pos: Vector3, rot: Vector3) -> void:
@@ -293,6 +307,55 @@ func _build_rifle() -> Node3D:
 	n.add_child(_make_box(Vector3(0.08, 0.1, 1.05), Color(0.18, 0.19, 0.2), Vector3(0.0, 0.08, -0.55), 0.7, 0.32))
 	n.add_child(_make_box(Vector3(0.1, 0.1, 0.48), Color(0.06, 0.06, 0.07), Vector3(0.0, 0.08, -1.25), 0.45, 0.35))
 	n.add_child(_make_box(Vector3(0.22, 0.08, 0.18), Color(0.04, 0.04, 0.045), Vector3(0.0, 0.23, -0.45), 0.5, 0.34))
+	return n
+
+
+func _build_torch() -> Node3D:
+	var n := Node3D.new()
+	n.name = "_Torch"
+	# Wooden shaft (the club body)
+	n.add_child(_make_box(Vector3(0.09, 0.09, 0.95), Color(0.36, 0.23, 0.13), Vector3(0.0, 0.0, 0.05)))
+	# Rag-wrapped head
+	n.add_child(_make_box(Vector3(0.15, 0.15, 0.32), Color(0.24, 0.14, 0.08), Vector3(0.0, 0.0, -0.45)))
+	# Flame core — emissive
+	var flame := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.18
+	sm.height = 0.34
+	flame.mesh = sm
+	flame.position = Vector3(0.0, 0.0, -0.7)
+	var fmat := StandardMaterial3D.new()
+	fmat.albedo_color = Color(1.0, 0.62, 0.18, 0.95)
+	fmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fmat.emission_enabled = true
+	fmat.emission = Color(1.0, 0.55, 0.18)
+	fmat.emission_energy_multiplier = 3.4
+	fmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flame.material_override = fmat
+	n.add_child(flame)
+	# Outer glow halo
+	var halo := MeshInstance3D.new()
+	var hm := SphereMesh.new()
+	hm.radius = 0.36
+	hm.height = 0.72
+	halo.mesh = hm
+	halo.position = Vector3(0.0, 0.0, -0.7)
+	var hmat := StandardMaterial3D.new()
+	hmat.albedo_color = Color(1.0, 0.42, 0.1, 0.22)
+	hmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	hmat.emission_enabled = true
+	hmat.emission = Color(1.0, 0.5, 0.12)
+	hmat.emission_energy_multiplier = 1.5
+	hmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	halo.material_override = hmat
+	n.add_child(halo)
+	# Light source so the torch actually illuminates surroundings.
+	var light := OmniLight3D.new()
+	light.light_color = Color(1.0, 0.62, 0.22)
+	light.light_energy = 2.0
+	light.omni_range = 8.0
+	light.position = Vector3(0.0, 0.0, -0.7)
+	n.add_child(light)
 	return n
 
 
